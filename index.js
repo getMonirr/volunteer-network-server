@@ -38,7 +38,7 @@ const authGuard = (req, res, next) => {
     }
     const token = authorization.split(' ')[1];
 
-    const verifyToken = jwt.verify(token, process.env.SECRET_KEY, (err, decode) => {
+    jwt.verify(token, process.env.SECRET_KEY, (err, decode) => {
         if (err) {
             return res.status(401).send({ error: true, message: 'authorization failed verify token' })
         }
@@ -54,6 +54,7 @@ async function run() {
 
         const eventsCollection = client.db('volunteerDB').collection('events');
         const volunteerCollection = client.db('volunteerDB').collection('volunteers')
+        const bookingsCollection = client.db('volunteerDB').collection('bookings')
 
         // jsonwebtoken
         app.post('/jwt', (req, res) => {
@@ -117,6 +118,52 @@ async function run() {
 
             res.send(deleteVolunteer)
         })
+
+
+        // user bookings
+        app.post('/bookings', async (req, res) => {
+            const bookingsDoc = req.body;
+            const bookings = await bookingsCollection.insertOne(bookingsDoc)
+
+            res.send(bookings)
+        })
+
+        // get all bookings
+        app.get('/bookings', async (req, res) => {
+            const bookings = await bookingsCollection.find().toArray()
+
+            res.send(bookings)
+        })
+
+        // get individual booking
+        app.get("/bookings/:id", async (req, res) => {
+            const query = { _id: new ObjectId(req.params.id) }
+            const booking = await bookingsCollection.findOne(query);
+
+            res.send(booking)
+        })
+
+
+
+        // get individual user bookings
+        app.post('/my-bookings', authGuard, async (req, res) => {
+            const userEmail = req.query.email;
+            const tokenEmail = req.decode.email;
+
+            if (userEmail === tokenEmail) {
+                const myBookings = await bookingsCollection.find({ email: userEmail }).toArray();
+
+                res.send(myBookings)
+            }
+        })
+
+        app.delete("/bookings/:id", async (req, res) => {
+            const query = { _id: new ObjectId(req.params.id) }
+            const booking = await bookingsCollection.deleteOne(query);
+
+            res.send(booking)
+        })
+
 
 
 
