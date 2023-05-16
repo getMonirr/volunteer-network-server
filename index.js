@@ -165,6 +165,24 @@ async function run() {
         })
 
 
+        // for indexing
+        await eventsCollection.createIndex({ title: 1, description: 1 }, { name: "EventsFinder" })
+
+        // search by title and category 
+        app.get('/search/:text', async (req, res) => {
+            const searchText = req.params.text;
+            const searchResult = await eventsCollection
+                .find({
+                    $or: [
+                        { title: { $regex: searchText, $options: "i" } },
+                        { description: { $regex: searchText, $options: "i" } }
+                    ]
+                })
+                .toArray();
+
+            res.send(searchResult)
+        })
+
 
 
 
